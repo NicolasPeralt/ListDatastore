@@ -1,0 +1,39 @@
+# Ruta del archivo de texto generado por el script en PowerShell
+txt_file_path = r"/rutadearchivo.txt"
+
+# Leer el archivo de texto y procesar los datos
+vcenter_data = []
+current_vcenter = None
+
+with open(txt_file_path, "r") as txt_file:
+    for line in txt_file:
+        line = line.strip()
+        if line.startswith("=== "):
+            current_vcenter = line[4:-4]
+        elif line.startswith("Host: "):
+            host_data = line[6:]
+            if ", Datastores: " in host_data:
+                host, datastores = host_data.split(", Datastores: ")
+                vcenter_data.append((current_vcenter, host, datastores))
+            else:
+                host = host_data
+                datastores = "No Datastores"
+                vcenter_data.append((current_vcenter, host, datastores))
+
+
+
+# Crear un DataFrame de pandas con los datos
+df = pd.DataFrame(vcenter_data, columns=["vCenter", "Host", "Datastores"])
+
+# Crear un archivo de Excel organizado
+excel_file_path = r"/rutaparaexportar.xlsx"
+writer = pd.ExcelWriter(excel_file_path, engine="xlsxwriter")
+
+for vcenter_name in df["vCenter"].unique():
+    vcenter_df = df[df["vCenter"] == vcenter_name].copy()  # Agrega .copy()
+    vcenter_df.drop(columns="vCenter", inplace=True)
+    vcenter_df.to_excel(writer, sheet_name=vcenter_name, index=False)
+
+
+# Guardar el archivo de Excel
+writer._save()

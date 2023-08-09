@@ -1,0 +1,53 @@
+# Lista de vCenter con sus credenciales
+$vCenterList = @(
+    @{
+        Server = "VCenter1"
+        Username = "Usuario1"
+        Password = "Contraseña1"
+    },
+    @{
+        Server = "VCenter2"
+        Username = "Usuario2"
+        Password = "Contraseña2"
+    },
+    # Agrega más vCenter en el mismo formato
+)
+
+# Ruta donde deseas guardar el archivo de texto
+$txtFilePath = "C:\Ruta\MultiVCenterArchivo.txt"
+
+# Crear un archivo de texto para almacenar los datos
+$txtContent = ""
+
+# Recorrer la lista de vCenter
+foreach ($vCenter in $vCenterList) {
+    $vcServer = $vCenter.Server
+    $vcUsername = $vCenter.Username
+    $vcPassword = $vCenter.Password
+
+    # Conectarse al vCenter
+    Connect-VIServer -Server $vcServer -User $vcUsername -Password $vcPassword
+
+    $txtContent += "=== $vcServer ===`r`n"
+
+    # Obtener la lista de todos los hosts
+    $hosts = Get-VMHost
+
+    # Iterar a través de cada host y listar sus datastores
+    foreach ($hostObj in $hosts) {
+        $hostName = $hostObj.Name
+        $datastores = Get-Datastore -VMHost $hostObj
+        $datastoreNames = $datastores | ForEach-Object { $_.Name }
+        $datastoreLine = "Host: $($hostName), Datastores: $($datastoreNames -join ', ')"
+        $txtContent += "$datastoreLine`r`n"
+    }
+
+    # Desconectarse del vCenter
+    Disconnect-VIServer -Server $vcServer -Confirm:$false
+
+    # Agregar línea en blanco entre vCenter
+    $txtContent += "`r`n"
+}
+
+# Guardar el contenido en el archivo de texto
+$txtContent | Set-Content -Path $txtFilePath
